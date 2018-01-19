@@ -1,7 +1,10 @@
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
-import com.mcma.actors.Device
+import com.mcma.actors.{Device, DeviceManager}
 import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
+
+import scala.language.postfixOps
+import scala.concurrent.duration._
 
 class DeviceSpec(_system: ActorSystem)
   extends TestKit(_system)
@@ -37,5 +40,25 @@ class DeviceSpec(_system: ActorSystem)
     val response2 = probe.expectMsgType[Device.RespondConsumption]
     response2.requestId should ===(42)
     response2.value should ===(Some(10.1))
+  }
+
+  "A Device Actor" should "reply to registration requests" in {
+    val probe = TestProbe()
+    val deviceActor = system.actorOf(Device.props("group", "device"))
+
+    deviceActor.tell(DeviceManager.RequestTrackDevice("group", "device"), probe.ref)
+    probe.expectMsg(DeviceManager.DeviceRegistered)
+    probe.lastSender should ===(deviceActor)
+  }
+
+  "A Device Actor" should "ignore wrong registration requests" in {
+    val probe = TestProbe()
+    val deviceActor = system.actorOf(Device.props("group", "device"))
+
+    deviceActor.tell(DeviceManager.RequestTrackDevice("wrongGroup", "device"), probe.ref)
+    probe.expectNoMsg(500 millis)
+
+    deviceActor.tell(DeviceManager.RequestTrackDevice("group", "Wrongdevice"), probe.ref)
+    probe.expectNoMsg(500 millis)
   }
 }

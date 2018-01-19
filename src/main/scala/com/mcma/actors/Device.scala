@@ -26,6 +26,13 @@ class Device(groupId: String, deviceId: String) extends Actor with ActorLogging 
       log.info("Recording consumption value {} from request {}", c, id)
       lastConsumptionReading = Some(c)
       sender() ! ConsumptionRecorded(id)
+
+    case DeviceManager.RequestTrackDevice(`groupId`, `deviceId`) => sender() ! DeviceManager.DeviceRegistered
+    case DeviceManager.RequestTrackDevice(_, _) =>
+      log.warning(
+        "Ignoring TrackDevice request for {}-{}.This actor is responsible for {}-{}.",
+        groupId, deviceId, this.groupId, this.deviceId
+      )
   }
 
 }
